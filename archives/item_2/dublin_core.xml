@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dublin_core schema="dc">
+  <dcvalue element="SNO">45</dcvalue>
+  <dcvalue element="CaseNO">1266</dcvalue>
+  <dcvalue element="Court">II</dcvalue>
+  <dcvalue element="Yr">1910</dcvalue>
+  <dcvalue element="CaseType">????</dcvalue>
+  <dcvalue element="Dt_Disposal">23/12/2024</dcvalue>
+  <dcvalue element="App_Name">raj</dcvalue>
+  <dcvalue element="District">????????</dcvalue>
+  <dcvalue element="Division">???????? ?????</dcvalue>
+  <dcvalue element="Tehsil">????</dcvalue>
+  <dcvalue element="file_name">1000002.tif</dcvalue>
+  <dcvalue element="UName">Vinod:12/23/2024 3:03:18 PM</dcvalue>
+  <dcvalue element="CCY">1266-II/1910</dcvalue>
+  <dcvalue element="CCY2">A_1266-II/1910</dcvalue>
+  <dcvalue element="DIS_YR">2024</dcvalue>
+</dublin_core>

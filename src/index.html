@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SAF BUILDER APP</title>
+    <link rel="stylesheet" href="./index.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>API Call Demo</h1>
+      <button id="apiButton">Call API</button>
+      <div id="result"></div>
+    </div>
+    <script>
+      async function callApi() {
+        const resultDiv = document.getElementById("result");
+        resultDiv.textContent = "Calling API...";
+        try {
+          const response = await fetch("http://localhost:4000/process"); // Replace with your API endpoint
+          // if (!response.ok) {
+          //   throw new Error(`API error: ${response.status}`);
+          // }
+          const data = await response.json();
+          if (data.success) {
+            // Show success message
+            resultDiv.textContent = `API call successful: ${data.message}`;
+          } else {
+            // Show only the error message and detailed error
+            resultDiv.textContent = `Error: ${data.message}\nDetails: ${data.error}`;
+          }
+        } catch (error) {
+          resultDiv.textContent = `Error: ${error.message}`;
+        }
+      }
+
+      document.getElementById("apiButton").addEventListener("click", callApi);
+    </script>
+  </body>
+</html>
