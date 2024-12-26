@@ -10,65 +10,14 @@ const metadataFile = "files/Data.csv"; // Path to your metadata CSV file
 const bitstreamsDir = "files/"; // Directory containing the uploaded digital files (e.g., images)
 const outputDir = "archives/"; // SAF structure output directory
 const outputZip = "dspace_archive.zip"; // Final zip file
+const csvDir = "CSVDdir/";
 
-// Read metadata CSV and generate SAF structure
-// async function processCSV() {
-//   //   // Ensure the output directory is clean
-//   await fs.remove(outputDir);
-//   await fs.ensureDir(outputDir);
-//   const transformedData = [];
-//   fs.createReadStream(metadataFile)
-//     .pipe(csv())
-//     .on("data", async (row) => {
-
-//       const transformedItem = {};
-//       for (const key in row) {
-//         if (key === "Path") {
-//           // Extract the base name of the file
-//           const fileName = path.basename(row[key]);
-//           transformedItem["dc.file_name"] = fileName; // Save only the file name
-//           delete row["Path"];
-//         } else {
-//           transformedItem[`dc.${key}`] = row[key];
-//         }
-//       }
-//       transformedData.push(transformedItem);
-//     })
-//     .on("end", async () => {
-//       transformedData.forEach(async (row, index) => {
-//         console.log(row, index);
-//         const itemDir = `${outputDir}/${row["item_id"] || `item_${index + 1}`}`;
-//         await fs.ensureDir(itemDir);
-//         // Create dublin_core.xml with the transformed metadata
-//         const metadata = [];
-//         for (const key in row) {
-//           if (key.startsWith("dc.")) {
-//             const element = key.split(".")[1]; // Get the part after 'dc.'
-//             metadata.push({
-//               element,
-//               value: row[key],
-//             });
-//           }
-//         }
-//         const dublinCoreFilePath = `${itemDir}/`;
-//         createDublinCoreXML(metadata, dublinCoreFilePath);
-//         const bitstreamPath = `${bitstreamsDir}/${row["dc.file_name"]}`;
-//         if (fs.existsSync(bitstreamPath)) {
-//           await fs.copy(bitstreamPath, `${itemDir}/${row["dc.file_name"]}`);
-//         } else {
-//           console.error(`File not found: ${bitstreamPath}`);
-//         }
-//       });
-
-//       createZip(outputDir, outputZip);
-//     });
-// }
 async function processCSV() {
   // Check if the metadata file exists
   if (!fs.existsSync(metadataFile)) {
     throw new Error(`Metadata file not present`);
   }
-
+  await fs.ensureDir(csvDir);
   await fs.ensureDir(bitstreamsDir);
   // Ensure the output directory is clean
   await fs.remove(outputDir);
@@ -116,8 +65,8 @@ async function processCSV() {
       }
     }
 
-    const dublinCoreFilePath = `${itemDir}/`;
-    await createDublinCoreXML(metadata, dublinCoreFilePath);
+    const dublinCoreFilePath = `${itemDir}/dublin_core.xml`;
+    await createDublinCoreXML(metadata, row, itemDir); // Include metadata and bitstream data
 
     const bitstreamPath = `${bitstreamsDir}/${row["dc.file_name"]}`;
     if (fs.existsSync(bitstreamPath)) {
@@ -128,14 +77,15 @@ async function processCSV() {
       const mimeType =
         mime.lookup(itemBitstreamPath) || "application/octet-stream";
 
-      contentsData.push(`filename=${row["dc.file_name"]}`);
-      contentsData.push(`mime-type=${mimeType}`);
-      contentsData.push(`file-size=${fileSize}`);
-      contentsData.push(`checksum=${checksum}`);
-      contentsData.push("");
+      contentsData.push(`${row["dc.file_name"]}`);
+      // contentsData.push(`${mimeType}`);
+      // contentsData.push(`${fileSize}`);
+      // contentsData.push(`${checksum}`);
+      contentsData.push(""); // Blank line to separate entries
+
       const contentsFilePath = `${itemDir}/contents`;
       fs.writeFileSync(contentsFilePath, contentsData.join("\n"), "utf8");
-      contentsData.length=0;
+      contentsData.length = 0;
     } else {
       console.error(`File not found: ${bitstreamPath}`);
     }
@@ -143,20 +93,33 @@ async function processCSV() {
 
   // Wait for all tasks to complete
   await Promise.all(tasks);
-  // Write the contents file
-  // const contentsFilePath = `${outputDir}/contents`;
-  // fs.writeFileSync(contentsFilePath, contentsData.join("\n"), "utf8");
-  // console.log(`Contents file created at: ${contentsFilePath}`);
+
+  // Save the transformed data to a new CSV file in the specified csvDir
+  const outputCSVPath = path.join(csvDir, "transformed_data.csv");
+  const writeStream = fs.createWriteStream(outputCSVPath);
+  const keys = Object.keys(transformedData[0]);
+
+  // Write the CSV headers
+  writeStream.write(keys.join(",") + "\n");
+
+  // Write the rows
+  transformedData.forEach((row) => {
+    const rowValues = keys.map((key) => row[key]);
+    writeStream.write(rowValues.join(",") + "\n");
+  });
+
+  writeStream.end();
+
   // Create the zip file
   await createZip(outputDir, outputZip);
 
   console.log("Processing complete and zip file created.");
 }
 
-// Generate dublin_core.xml with metadata and output it to a specified directory
-function createDublinCoreXML(metadata, outputDir) {
+// Generate dublin_core.xml with metadata and bitstream data and output it to a specified directory
+function createDublinCoreXML(metadata, row, itemDir) {
   // Define the path for the Dublin Core XML file
-  const outputFile = path.join(outputDir, "dublin_core.xml");
+  const outputFile = path.join(itemDir, "dublin_core.xml");
 
   // Create the XML document
   const xml = xmlbuilder.create("dublin_core", { encoding: "UTF-8" });
@@ -170,9 +133,23 @@ function createDublinCoreXML(metadata, outputDir) {
     }
   });
 
+  // Add bitstream information
+  const bitstreamsElement = xml.ele("bitstreams");
+  const bitstreamElement = bitstreamsElement.ele("bitstream");
+  bitstreamElement.ele("name", {}, row["dc.file_name"]);
+  bitstreamElement.ele(
+    "mime_type",
+    {},
+    row["dc.mime_type"] || "application/octet-stream"
+  );
+  bitstreamElement.ele("size", {}, row["dc.file_size"] || "0");
+  bitstreamElement.ele("checksum", {}, row["dc.checksum"] || "no-checksum");
+  bitstreamElement.ele("format", {}, "File Format");
+
   // Write the generated XML to the output file
   fs.writeFileSync(outputFile, xml.end({ pretty: true }));
 }
+
 // Function to calculate the checksum (MD5) of a file
 function calculateChecksum(filePath) {
   const hash = crypto.createHash("md5");
@@ -180,11 +157,13 @@ function calculateChecksum(filePath) {
   hash.update(fileBuffer);
   return hash.digest("hex");
 }
+
 // Function to get the file size in bytes
 function getFileSize(filePath) {
   const stats = fs.statSync(filePath);
   return stats.size;
 }
+
 // Create a zip file from the SAF directory
 function createZip(sourceDir, zipFile) {
   const output = fs.createWriteStream(zipFile);

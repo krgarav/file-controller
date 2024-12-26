@@ -15,4 +15,13 @@
   <dcvalue element="CCY">1266-II/1910</dcvalue>
   <dcvalue element="CCY2">A_1266-II/1910</dcvalue>
   <dcvalue element="DIS_YR">2024</dcvalue>
+  <bitstreams>
+    <bitstream>
+      <name>1000002.tif</name>
+      <mime_type>application/octet-stream</mime_type>
+      <size>0</size>
+      <checksum>no-checksum</checksum>
+      <format>File Format</format>
+    </bitstream>
+  </bitstreams>
 </dublin_core>
